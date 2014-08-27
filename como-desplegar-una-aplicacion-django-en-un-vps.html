@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>¿Como desplegar una aplicación local de Django en un VPS?</title>
+    <link href="digitalocean.css" media="all" rel="stylesheet">
+</head>
+
+<body>
+	<div class="m-pikabu-viewport" style="width: auto;">
+		<div class="m-pikabu-container">
+		    <div class="wrapper tutorial-single">
+			    <div class="section section-primary">
+			    	<div class="sidebar main-sidebar" data-sticky-sidebar="" data-sticky-content=".section-content">
+						<p class="sidebar-avatar">
+							<a href="https://twitter.com/cristian_cena" target="_blank">
+								<img src="img/avatar.jpeg" alt="" class="avatar avatar-large">
+							</a>
+						</p>
+						<p class="sidebar-author">Cristian Cena</p>
+						<p class="sidebar-date">
+							Originalmente en <a href="https://www.digitalocean.com/community/tutorials/how-to-deploy-a-local-django-app-to-a-vps" target="_blank">DigitalOcean</a>.
+						</p>
+						<p class="sidebar-date updated-at">Traducido Ago 21, 2014 
+							<a href="http://twitter.com/share?text=Algún texto&amp;url=http://chichango.com" target="_blank" title="Compartir en Twitter">
+								twitter
+							</a>
+							<span> - </span>
+							<a href="https://www.facebook.com/sharer/sharer.php?u=http://chichango.com" target="_blank" title="Compartir en Facebook">
+								facebook
+							</a>
+						</p>
+						<p class="sidebar-difficulty">
+							<span class="difficulty-level Beginner">Principiante</span>
+						</p>			
+					</div>
+					<div class="section-content content">
+					    <h1 class="content-title">¿Como desplegar una aplicación local de Django en un VPS?</h1>
+					    <p>&nbsp;</p>
+					    <div class="content-body tutorial-content">
+					        <h2>Pre-requisitos</h2>
+
+							<p>Este tutorial asume que ya has configurado tu servidor privado virtual con tu sistema operativo preferido (para este tutorial usamos Debian 7, en Ubuntu también funcionará). Si no lo has hecho, puedes seguir este <a href="https://www.digitalocean.com/community/tutorials/how-to-create-your-first-digitalocean-droplet-virtual-server" target="_blank">tutorial.</a> Antes de empezar, asegúrate de que tu "cloud server" está configurado correctamente para alojar aplicaciones de Django con un servidor de bases de datos, servidor web y entorno virtual ya instalado. Si no ha hecho esto, por favor sigue los pasos 1 a 6 de <a href="Como-instalar-y-configurar-Django-con-Postgres-NGINX-y-Gunicorn.html" target ="_blank">"configurar un seridor para Django"</a></p> 
+							
+							<h2>Paso Uno: Actualizar paquetes</h2>
+							<p>Antes que nada, siempre es una buena práctica asegurarte de que todos tus paquetes gestionados por apt, o cualquiera que sea tu gestor de paquetes, están al día. Puedes hacer esto conectando a tu VPS vía SSH y corriendo los siguientes comandos:</p>
+							<p><pre>sudo apt-get update</pre></p>
+							<p><pre>sudo apt-get upgrade</pre></p>
+							<p>El primer comando descarga cualquier actualización del gestor de paquetes a través de apt-get. El segundo comando instala las actualizaciones que fueron descargadas. Despues de correr los comandos de arriba, si hay actualizaciones para instalar probablemente se le solicitará que indique si quiere o no instlar estas actualizaciones. Si esto sucede, solo escriba "y" y luego de enter cuando se le solicicte.</p>
+
+							<h2>Paso Dos: Configurar tu entorno virtual</h2>
+							<p><em>Si completaste los pre-requisitos, esto ya debería estar configurado y puedes omitir este paso.</em></p>
+							<p>Ahora necesitamos configurar nuestro entorno virtual donde vivirán los paquetes de python y los archivos de nuestro proyecto. Si no usas virtualenv, entonces simplemente crea el directorio donde vivirá tu proyecto y muévete hacia el paso tres. </p>
+							<p>Corre el siguiente comando para crear tu entorno virtual. Recuerda reemplazar la ruta con la ruta deseada para tu proyecto en el VPS.</p>
+							<p><pre>virtualenv /opt/myproject</pre></p>
+							<p>Ahora que tienes tu entorno virtual configurado puedes activar tu entorno virtual e instalar Django y cualquier otro paquete de python que puedas necesitar usando pip. Abajo hay un ejemplo de como activar tu virtualenv y usar pip para isntalar Django.</p>
+							<p><pre>source /opt/myproject/bin/activate</pre></p>
+							<p><pre>pip install django</pre></p>
+							<p>Ahora estamos listos para crear una base de datos para nuestro proyecto.</p>
+
+							<h2>Paso Tres: Crear una base de datos</h2>
+							<p>Este tutorial asume que usas PostgreSQLL como tu servidor de bases de datos. Si no es así, necesitarás comprobar la documentación sobre como crear una base de datos para tu servidor de bases de datos de elección.</p>
+							<p>Para crear una base de datos con PostgreSQL empieza por correr el siquiente comando:</p>
+							<pre>sudo su - postgres</pre>
+							<p>La terminal debe decir algo como "postgres@yourserver". Si es así, corre este comando para crear tu base de datos, asegurántote de reemplazar "mydb" con tu nombre de base de datos deseado.</p>
+							<p><pre>createdb mydb</pre></p>
+							<p>Ahora crea tu usuario de base de datos con el siguiente comando:</p>
+							<p><pre>createuser -P</pre></p>
+							<p>Ahora te encontrarás con una serie de seis promps. El primero te preguntará por el nombre de tu nuevo usuario (use cualquier nombre que le guste). Los dos siguientes son para tu contraseña y la confirmación de la contraseña para el nuevo usuario. Para los últimos tres prompts simplemente ingrese "n" y de "enter". Esto asegura que tu nuevo usuario solo tiene acceso a lo que tu le diste acceso y a nada más. Ahora activa la línea de comandos PostgreSQL así</p>
+							<p><pre>psql</pre></p>
+							<p>Finalmente, concede a este nuevo usuario acceso a tu nueva base de datos con el siguiente comando:</p>
+							<p><pre>GRANT ALL PRIVILEGES ON DATABASE mydb TO myuser;</pre></p>
+							<p>Ahora usted está preparado con una base de datos y un usuario para acceder a esa base de datos. A continuación, podemos trabajar en la configuración de nuestro servidor web para servir nuestros archivos estáticos.</p>
+
+							<h2>Paso Cuatro: Configurar tu VPS</h2>
+							<p>Necesitamos crear un nuevo archivo de configuración para nuestro sitio. Este tutorial asume que estás usando NGINX como tu cloud server. Si éste no es el caso, necesitarás comprobar la documentación del servidor web que hayas elegido con el fin de completar este paso.</p>
+							<p>Para NGINX, corre el siguiente comando para crear y editar el archivo de configuración del servidor de tu sitio web, asegurándote de reemplazar "myproject" del final del comando con el nombre de tu proyecto:</p>
+							<p><pre>sudo nano /etc/nginx/sites-available/myproject</pre></p>
+							<p>Ahora ingresa las siguientes líneas de código en el editor:</p>
+<pre><code>
+server {
+    server_name yourdomainorip.com;
+
+    access_log off;
+
+    location /static/ {
+        alias /opt/myenv/static/;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Real-IP $remote_addr;
+        add_header P3P 'CP="ALL DSP COR PSAa PSDa OUR NOR ONL UNI COM NAV"';
+    }
+}
+</code></pre>							
+							<p>Guardar y salir del archivo. La configuración anterior ha establecido NGINX para servir cualquier cosa solicitada en yourdomainorip.com/static/ del directorio static que establecimos para nuestro proyecto de Django. Cualquier solicitud a yourdomainorip.com se hará al proxy en localhost sobre el puerto 8001, que es donde le indicamos correr a Gunicorn (en tu aplicación de servidor elejida). Las otras líneas aseguran que el hostname y la dirección IP de la solicitud sea pasada a Gunicorn. Sin esto, la direccion IP de cada solicitud se convierte en 127.0.0.1 y el hostname es solo el hostname de tu VPS.</p>
+							<p>Ahora necesitamos establecer un enlace simbólico en el directorio /etc/nginx/sites-enabled que apunta a este archivo de configuración. Así es como NGINX sabe que este sitio está activo. Cambio los directorios a /etc/nginx/sites-enabled así:</p>
+							<p><pre>cd /etc/nginx/sites-enabled</pre></p>
+							<p>Una vez allí, corra este comando</p>
+							<p><pre>sudo ln -s ../sites-available/myproject</pre></p>
+							<p>Ahora reinicie NGINX con el siguiente comando:</p>
+							<p><pre>sudo service nginx restart</pre></p>
+							<p>Puede ver el siguiente error al reiniciar</p>
+							<p><pre>server_names_hash, you should increase server_names_hash_bucket_size: 32</pre></p>
+							<p>Puede resolver esto editando '/etc/nginx/nginx.conf'</p>
+							<p>Abra el archivo y descomente la siguiente línea:</p>
+							<p><pre>server_names_hash_bucket_size 64;</pre></p>
+							<p>Ahora vamos a empujar los archivos de nuestro proyecto a nuestro <acronym title="maquina virtual">droplet</acronym></p>
+
+							<h2>Paso Cinco: Mover al <abbr title="máquina virtual">droplet</abbr> el proyecto local de Django</h2>
+							<p>Tenemos varias opciones aquí: FTP, SFTP, SCP, Git, SVN, etc. Vamos a usar Git para transferir los archivos de tu proyecto local a tu servidor privado virtual. </p>
+							<p>Encuentra el directorio donde colocaste tu entorno virtual o donde quieres que viva tu proyecto. Cambia a este directorio con el siguiente comando:</p>
+							<p><pre>cd /opt/myproject</pre></p>
+							<p>Una vez allí, crear un directorio nuevo donde vivirán los archivos de tu proyecto. Puedes hacer esto con el siguiente comando:</p>
+							<p><pre>mkdir myproject</pre></p>
+							<p>Puede parecer redundante tener dos directorios con el mismo nombre, sin embargo, se hace para que el nombre de tu entorno virtual y el nombre de tu proyecto sean el mismo.</p>
+							<p>Ahora cambia al nuevo directorio con el siguiente comando:</p>
+							<p><pre>cd myproject</pre></p>
+							<p>Si tu proycto está en un repositorio Git, simplemente asegúrate de que tu código está todo <acronym title="commited">comprometido</acronym> y <acronym title="pushed">empujado</acronym>. Puedes comprobarlo corriendo el siguiente comando localmente en una terminal de tu computadora (para Mac) o en un comando prompt (PC).</p>
+							<p><pre>git status</pre></p>
+							<p>Si ves que no hay archivos en la salida, entonces deberías ser bueno para ir. Ahora accede vía SSH a tu droplet e instala Git con este comadno:</p>
+							<p><pre>sudo apt-get install git</pre></p>
+							<p></p>
+							<p><pre>git clone https://webaddressforyourrepo.com/path/to/repo .</pre></p>
+							<p>Asegúrese de responder "yes" a todos los prompts introduciendo "y" y dando "enter". Una vez que Git está instalado, usela para empujar los archivos de su pproyecto al directorio de su proyecto con el siguiente comando:</p>				
+							<p><pre>git clone https://webaddressforyourrepo.com/path/to/repo .</pre></p>
+							<p>Si usas github o bitbucket para alojar Git, allé hay un boton "clone" que puede usar para obtener este comando. Asegurarse de agregar el "." al final. Si no hacemos esto, entonces Git creará un directorio con el nombre del repositorio dentro del directorio de tu proyecto, lo cual no es lo que quieres.</p>
+							<p>Si no usas Git, entonces usa FTP u otro protocolo para transferir tus archivos al directorio del proyecto creado en los pasos anteriores.</p>
+							<p>¡Ahora todo lo que queda es configurar tu servidor de aplicaciones!</p>
+
+							<h2>Paso Seis: Instalar y configurar un servidor de aplicaciones</h2>
+							<p><em>Si completaste los pre-requisitos, esto ya debería estar configurado y puedes saltear este paso.</em></p>
+							<p>Ahora necesitamos instalar nuestro servidor de aplicaciones y asegurarnos de que escucha el puerto 8001 para solicitudes de nuestra aplicación de Django. En este ejemplo usamos Gunicorn. Para instalar Gunicorn, primero activa tu entorno virtual</p>
+							<p><pre>source /opt/myproject/bin/activate</pre></p>
+							<p>na vez que tu entorno virtual está activo, corre el siguiente comando para instalar Gunicorn:</p>
+							<p><pre>pip install gunicorn</pre></p>
+							<p>Ahora que Gunicorn está instalado, vincule las solicitudes de su dominio o IP al puerto 8001:</p>
+							<p><pre>gunicorn_django --bind yourdomainorip.com:8001</pre></p>
+							<p>Ahora puedes dar "ctrl + z" y luego tipear "bg" para fondear el proceso (si le gusta). Puede encontrar configuración más avanzada de Gunicorn en el paso nueve de <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-django-with-postgres-nginx-and-gunicorn" target="_blank">este tutorial</a>.</p>
+							<p>¡Ahora estas listo para el paso final!</p>
+
+
+							<h2>Paso Siete: Configurar tu aplicación</h2>
+							<p>El paso final es configurar tu aplicación para producción. Todos los cambios que necesitamos hacer están en tu archivo "settings.py" de tu proyecto de Django. Abra este archivo así:</p>
+							<p><pre>sudo nano /opt/myproject/myproject/settings.py</pre></p>
+							<p>La ruta a tu archivo "settings" puede diferir dependiendo de como está configurado tu proyecto. En consecuencia, modificar la ruta en el comando anterior:</p>
+							<p>Con tu archivo settings abierto, cambia la variable DEBUG a <em>False</em></p>
+							<p><pre>DEBUG = False</pre></p>
+							<p>Esto hará que los errores se muestren a los usuarios como páginas de error 404 o 500, en vez de darles lugar a un seguimiento con información de depuración.</p>
+							<p>Ahora edita la configuración de tu base de datos para que se vea como el siguiente código, usando tu nombre de base de datos, usuario y contraseña en lugar de los que se muestran a continuación:</p>
+<pre><code>
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'mydb', # Or path to database file if using sqlite3.
+        # The following settings are not used with sqlite3:
+        'USER': 'myuser',
+        'PASSWORD': 'password',
+        'HOST': '', # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
+        'PORT': '', # Set to empty string for default.
+    }
+}
+</code></pre>
+							<p>Ahora edita la configuración de tus archivos estáticos:</p>
+							<p><pre>STATIC_ROOT = '/opt/myproject/static/'</pre></p>
+							<p><pre>STATIC_URL = '/static/'</pre></p>
+							<p>Guardar y salir del archivo. Ahora todo lo que necesitas hacer es recoger nuestros archivos estáticos. Cambia al directorio donde está tu script "manage.py" y corre el siuiente comando:</p>
+							<p><pre>python manage.py collectstatic</pre></p>
+							<p>Este comando recogerá todos los archivos esrtáticos de dentro del directorio que establecimos en nuestro archivo settings.py anteriormente.</p>
+							<p>¡Y eso es todo! Ahora has conseguido desplegar tu aplicación en producción y está lista para funcionar.</p>
+
+
+							<div class="author">By DigitalOcean. Traducido por 
+								<a href="https://twitter.com/cristian_cena" target="_blank">Chichango</a>
+							</div>
+							<p>&nbsp;</p>
+					    </div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

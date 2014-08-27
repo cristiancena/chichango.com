@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Configurar virtual hosts en NGINX sobre Ubuntu 12.04</title>
+    <link href="digitalocean.css" media="all" rel="stylesheet">
+</head>
+
+<body>
+	<div class="m-pikabu-viewport" style="width: auto;">
+		<div class="m-pikabu-container">
+		    <div class="wrapper tutorial-single">
+				<div class="sidebar main-sidebar" data-sticky-sidebar="" data-sticky-content=".section-content">
+					<p class="sidebar-avatar">
+						<a href="https://twitter.com/cristian_cena" target="_blank">
+							<img src="img/avatar.jpeg" alt="" class="avatar avatar-large">
+						</a>
+					</p>
+					<p class="sidebar-author">Cristian Cena</p>
+					<p class="sidebar-date">
+						Originalmente por <br><a href="https://www.digitalocean.com/community/tutorials/how-to-set-up-nginx-virtual-hosts-server-blocks-on-ubuntu-12-04-lts--3" target="_blank"><i>Etel Sverdlov</i></a>.
+					</p>
+					<p class="sidebar-date updated-at">Traducido Ago 22, 2014 
+						<a href="http://twitter.com/share?text=Algún texto&amp;url=http://chichango.com" target="_blank" title="Compartir en Twitter">
+							twitter
+						</a>
+						<span> - </span>
+						<a href="https://www.facebook.com/sharer/sharer.php?u=http://chichango.com" target="_blank" title="Compartir en Facebook">
+							facebook
+						</a>
+					</p>
+					<p class="sidebar-difficulty">
+						<span class="difficulty-level Beginner">Principiante</span>
+					</p>
+					
+
+				</div>
+				<div class="section-content content">
+
+				    <h1 class="content-title">Configurar virtual hosts en NGINX sobre Ubuntu 12.04</h1>
+				    
+				    <div class="content-body tutorial-content">
+
+<h2>Acerca de los virtual hosts</h2>
+<p>Son usados para correr más de un sitio web o dominio fuera de un solo servidor. Según el sitio web de NGINX los virtual hosts se denominan "bloques de servidor" (server blocks). Sin embargo para facilitar la comparación con apache, me referiré a ellos como "virtual hosts" en este tutorial.</p>
+<h2>Configuración</h2>
+<p>Los pasos de este tutorial requieren que el usuario tenga privilegios de root en el VPS. Puedes ver como ajustar esto en el tutorial de <a href="https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-12-04" target="_blank">configuración de servidor inicial</a> en los pasos 3 y 4. Además si me refiero al usuario en un paso, voy a usar el nombre "www". Puedes impolementar cualquier nombre de usuario que se adapte. Adicionalmente, necesitas tener NGINX ya instalado en tu VPS. Si este no es el caso puedes descargarlo con este comando</p>
+<p><pre>sudo apt-get install nginx</pre></p>
+
+<h2>Paso Uno: Crear un nuevo directorio</h2>
+<p>El primer paso es crear un nuevo directorio donde pondremos la información de nuestro sitio web. Esta ubicación será su "document root" luego en el archivo de configuración virtual de apache. Necesitamos designar un <a href="https://www.digitalocean.com/community/tutorials/how-to-set-up-a-host-name-with-digitalocean" target="_blank">dominio de DNS aprovado</a> , o una dirección IP, para probar que un virtual host está funcinoando. En este tutorial usamos example.com como un marcador de posición (placeholder) para un nombre de dominio correcto. Sin embargo, en caso de que desee utilizar un nombre de dominio no aprovado para probar el proceso encontrará información sobre como hacer que funcione sobre su ordenador local en el paso seis.</p>
+
+<h2>Paso Dos: Conceder permisos</h2>
+<p>Necesitamos conceder la propiedad del directorio al usuario correcto, en lugar de solo mantenerlo en el sistema "root". Puedes reemplazar el "www-data" con el nombre de usuario apropiado a continuación.</p> 
+<p><pre>sudo chown -R www-data:www-data /var/www/example.com/public_html</pre></p>
+<p>Adicionalmente, es importante para asegurarse de que todo el mundo será capas de leer los nuevos archivos.</p>
+<p><pre>sudo chmod 755 /var/www</pre></p>
+<p>Ahora ya está todo con permisos</p>
+
+
+
+
+<h2>Paso 3 - Crear la Página:</h2>
+<p>Necesitamos crear un nuevo archivo llamado index.html dentro del directorio que hicimos antes. </p>
+<p><pre>sudo nano /var/www/example.com/public_html/index.html</pre></p>
+<p>Podemos agregar algún texto al archivo así vamos a tener algo para ver cuando el sitio redirije al host virtual.</p>
+<pre>&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;www.example.com&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Success: You Have Set Up a Virtual Host&lt;/h1&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<p>Guardar y salir.</p>
+
+<h2>Paso 4 - Crear el nuevo archivo archivo de virtualhosts</h2>
+<p>El siguiente paso es crear un nuevo archivo que contendrá la información de nuestro virtual host.</p>
+<p>NGINX nos provée con un layout para este archivo en el directorio "sites-available", así que solo necesitamos copiar el texto dentro deun nuevo archivo personalizado.</p>
+<p><pre>sudo cp /etc/nginx/sites-available/default /etc/nginx/sites-available/example.com</pre></p>
+
+<h2>Paso 5 - Configurar los hosts virtuales:</h2>
+<p>Abrir el nuevo archivo de host virtual Dentro verás toda la información que necesitas para configurar el host virtual.</p>
+<p><pre>sudo nano /etc/nginx/sites-available/example.com</pre></p>
+<p>Tenemos que hacer un par de cambios en estas pocas líneas:</p>
+<pre> 
+server {
+    listen   80; ## listen for ipv4; this line is default and implied
+    #listen   [::]:80 default ipv6only=on; ## listen for ipv6
+
+    root /var/www/example.com/public_html;
+    index index.html index.htm;
+
+    # Make site accessible from http://localhost/
+    server_name example.com;
+}
+</pre>
+<ul>
+	<li>Descomentar "listen 80" para que todo el tráfico que entra a través de ese puerto se dirija hacia el sitio.</li>
+	<li>Cambiar la extensión de "root" para que coincida con el directorio que hemos hecho en el paso uno. Si el documento "root" es incorrecto o está ausente usted no será capaz de configurar el host virtual.</li>
+	<li>Cambiar el nombre del servidor a su nombre de dominio de DNS aprovado o, si usted no tiene uno, puede utilizar su direccion IP.</li>
+</ul>
+<p>No necesitas hacer ningún otro cambio en este archivo. Guardar y salir.</p>
+<p>El próximo paso es activar el host creando un enlace simbólico entre el directorio "sites-available" y "sites-enabled".En apache, el comando para lograr esto es "a2ensite". NGINX no tiene un atajo equivalente, sin embargo es un comando fácil.</p>
+<pre>sudo ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/example.com</pre>
+<p>Para evitar tanto el "error conflictivo de nombre de servidor" como asegurarse de que su sitio va a mostrar la información correcta, puedes eliminar el servidor de bloque por defecto de NGINX.</p>
+<pre>sudo rm /etc/nginx/sites-enabled/default</pre>
+
+
+<h2>Paso 6 - Reanudar, volver a arrancar NGINX</h2>
+<p>Hemos hecho un montón de cambios en la configuración. Reinciciar NGINX y hacer los cambios.</p>
+<p><pre>sudo service nginx restart</pre></p>
+
+
+
+
+
+<h2>Opcional Paso Siete - Estableciendo los local hosts</h2>
+<p>Si ha apuntado su nombre de dominio a la dirección IP de su servidor puede omitir este paso - no necesita configurar local hosts. Sus hosts virtuales deben funcionar. Sin embargo, si quieres probar sus nuevos hosts virtuales sin tener que conectarse a un nombre de dominio real, puedes configurar hosts locales en su ordenador. Para este paso asegúrese de que está el equipo en sí, no su droplet.</p>
+<p>Para proceder con este paso necesita saber la configuración administrativa de su ordenador, de lo contrario se le requerirá el uso de un nombre de dominio real para poner a prueba los hosts virtuales</p>
+<p>Si estás sobre Mac o Linux, accede al usuario root (su) en tu computadora y abre el archivo de hosts:</p>
+<p><pre>nano /etc/hosts </pre></p>
+<p>Si estás sobre Windows, puedes encontrar las instrucciones para modificar el archivo hosts en el sitio de <a href="http://support.microsoft.com/kb/923947" target="_blank">microsoft</a></p>
+<p>Puede agregar los detalles del host local a este archivo como se ve en el siguiente ejemplo. Mientras que la línea está allí, dirigiendo hacia su navegador, decir, example.com le dará todos los detalles del host virtual para la dirección ip correspondiente.</p>
+<p>Sin embargo, puede ser una buena idea eliminar estas direcciones fuera de la carpeta local hosts cuando haya terminado para evitar cualquier confusión futura.</p>
+
+<h2>Paso Ocho - Resultados: Ver su host virtual en acción</h2>
+<p>Una vez que haya terminado de construir su virtual host, puede ver como luce online. Escriba su dominio o direccion ip en el navegador. Debería verse algo similar a mi <a href="img/PoO8d.png" target="_blank">captura de pantalla</a>.</p>
+
+<h2>Creando más alojamientos virtuales:</h2>
+<p>Para agregar más virtual hosts solo debes repetir el proceso anterior teniendo cuidado de configurar un nuevo documento raíz con el nombre de dominio apropiado y luego crear y activar el nuevo archivo de host virtual.</p>
+
+<h2>Ver más:</h2>
+<p>Una vez que tienes tus virtual hosts instalados, puedes proceder a <a href="https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-nginx-for-ubuntu-12-04" target="_blank">Crear un Certificado SSL para tu sitio</a> o <a href="https://www.digitalocean.com/community/tutorials/how-to-set-up-vsftpd-on-ubuntu-12-04" target="_blank">Instalar un Servidor FTP</a></p>
+						<div class="author">By <a href="https://twitter.com/etelsverdlov" target="_blank">Etel Sverdlov</a>. Traducido por 
+							<a href="https://twitter.com/cristian_cena" target="_blank">Chichango</a>
+						</div>
+				    </div>
+
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

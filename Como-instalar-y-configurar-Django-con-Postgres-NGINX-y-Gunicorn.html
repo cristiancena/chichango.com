@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>¿Como instalar y configurar Django con Postgres NGINX y Gunicorn?</title>
+    <link href="digitalocean.css" media="all" rel="stylesheet">
+	<script type="text/javascript" src="//use.typekit.net/njm7orv.js"></script>
+    <style type="text/css">.tk-proxima-nova{font-family:"proxima-nova",sans-serif;}</style>
+</head>
+
+<body>
+	<div class="m-pikabu-viewport" style="width: auto;">
+		<div class="m-pikabu-container">
+		    <div class="wrapper tutorial-single">
+			    <div class="section section-primary">
+			    	<div class="sidebar main-sidebar" data-sticky-sidebar="" data-sticky-content=".section-content">
+						<p class="sidebar-avatar">
+							<a href="https://twitter.com/cristian_cena" target="_blank">
+								<img src="img/avatar.jpeg" alt="" class="avatar avatar-large">
+							</a>
+						</p>
+						<p class="sidebar-author">Cristian Cena</p>
+						<p class="sidebar-date">
+							Originalmente <!-- by <i>Etel Sverdlov</i> --> en <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-django-with-postgres-nginx-and-gunicorn" target="_blank">DigitalOcean</a>.
+						</p>
+						<p class="sidebar-date updated-at">Traducido Ago 21, 2014 
+							<a href="http://twitter.com/share?text=Algún texto&amp;url=http://chichango.com" target="_blank" title="Compartir en Twitter">
+								twitter
+							</a>
+							<span> - </span>
+							<a href="https://www.facebook.com/sharer/sharer.php?u=http://chichango.com" target="_blank" title="Compartir en Facebook">
+								facebook
+							</a>
+						</p>
+						<p class="sidebar-difficulty">
+							<span class="difficulty-level Advanced">Avanzado</span>
+						</p>
+						
+					
+					</div>
+					<div class="section-content content">
+					    <h1 class="content-title">¿Como instalar y configurar Django con Postgres NGINX y Gunicorn? </h1>
+					    <p>&nbsp;</p>
+					    <div class="content-body tutorial-content">
+					        <h2>Pre-requisitos</h2>
+
+							<p>Este tutorial asume que ya has configurado tu droplet con Debian 7 o una distribución Linux similar (tal como Ubuntu). Si no ha hecho esto, por favor siga el tutorial sobre configuración de un droplet <a href="https://www.digitalocean.com/community/tutorials/how-to-create-your-first-digitalocean-droplet-virtual-server" target="_blank">aquí</a>.</p> 
+			
+							<p>Por conveniencia he dividido este tutorial en dos partes. La primera (1 a 6) cubre solo la instalación. Si eres un usuario más avanzado de Django que solo necesita ayuda en la instalación, puedes parar en el paso seis. Si ya has instalado todo y solo quieres saber como configurar todo, entonces omite y avanza hasta el paso siete. Si sientes que necesitas ayuda de inicio a fin, entonces solo sigue los pasos en orden y no deberás tener problemas. Empezemos!</p>
+
+							<h2>Paso Uno: Actualizar paquetes</h2>
+							<p>Antes de que hagamos cualquier cosa, necesitamos asegurarnos de que todos los paquetes instalados en nuestro VPS estén al día. Con el fín de hacer esto conecta a tu VPS vía SSH y corre los siguientes comandos:</p>
+							<p><code>sudo apt-get update</code></p>
+							<p><code>sudo apt-get upgrade</code></p>
+							<p>El primer comando descarga las actualizaciones de los paquetes gestionados a través de apt-get. El segundo comando instala las actualizaciones que fueron descargadas. después de correr los comandos anteriores, si hay actualizaciones para instalar, probablemente se le pedirá que indique si desea instalar las actualizaciones o no. Si sucede esto solo tipee "y" y luego de "enter" cuando se le solicite.</p>
+							
+							<h2>Paso Dos: Instalar y crear un entorno virtual</h2>
+							<p>Instalar <a href="http://virtualenv.readthedocs.org/" target="_blank">virtualenv</a> es muy simple. Solo ejecuta el comando de abajo:</p>
+							<p><code>sudo apt-get install python-virtualenv</code></p>
+							<p>Eso es todo lo que hay que hacer. Ahora vamos a crear nuestro entorno virtual para que podamos instalar django y otros paquetes de python dentro de el.</p>
+							<p><code>sudo virtualenv /opt/myenv</code></p>
+							<p>Nota que un nuevo directorio "myenv" fue creado en el directorio "/opt". Aquí es donde vivirá nuestro entorno virtual. Aseguurarse de reemplazar "/opt/myenv" con la ruta a donde quiere instalar su entorno virtual. Normalmente pongo mis entornos virtuales en /opt, pero esto es preferente estrictamente. Escoja el método que tenga más sentido para usted.</p>
+							
+							<h2>Paso Tres: Instalar Django</h2>
+							<p>Ahora necesitamos activar nuestro entorno virtual de modo que cuando instalamos paquetes de python ellos se instalen en nuestro entorno virtual.</p>
+							<p><code>source /opt/myenv/bin/activate</code></p>
+							<p>Ahora deberías ver que "(myenv)" ha sido añadido al comienzo de tu terminal en el prompt. Esto te ayudará a saber cuando tu entorno virtual está activo y que entorno virtual estña activo, en caso de que tenga varios entornos virtuales en el VPS.</p>
+							<p>Con tu entorno virtual activo, ahora podemos instalar Django. Para hacer esto, usamos pip, un gestor de paquetes de python cmomo easy_install. Aquí está el comando que correrás:</p>
+							<p><code>pip install django</code></p>
+							<p>Ahora tienes Django instalado en tu entorno virtual. Ahora veamos que está haciendo nuestro servidor de bases de datos.</p>
+
+							<h2>Paso Cuatro: Instalar PostgreSQL</h2>
+							<p>La mayoría de los usuarios de Django prefieren usar PostgreSQL como su servidor de bases de datos. Es mucho más robusto que MySQL, MSSQL u otros.</p>
+							<p>Ya que no necesitamos nuestro entorno virtual activo para esta parte, corre el siguiente comando para desactivarlo:</p>
+							<p><code>deactivate</code></p>
+							<p>Esto desactivará siempre cualquier entorno virtual que esté activo actualmente. Ahora necesitamos instalar las dependencias para PostgreSQL para trabajar con Django, con este comando:</p>
+							<p><code>sudo apt-get install libpq-dev python-dev</code></p>
+							<p>Ahora que tienes todo esto instalemos postgreSQL</p>
+							<p><code>sudo apt-get install postgresql postgresql-contrib</code></p>
+							<p>Ahora PostgreSQL está instalado sobre tu máquina y listo para rodar</p>
+
+							<h2>Paso Cinco: instalar NGINX</h2>
+							<p>NGINX es un servidor web increíblemente rápido y liviano. Lo usaremos como servidor para nuestros archivos estáticos para nuestra aplicación de Django. Para isntalarlo corre este comando:</p>
+							<p><code>sudo apt-get install nginx</code></p>
+							<p>Tenga en mente que todavía necesitas iniciar NGNIX, pero vamos a repasar esto cuando empezemos a configurar nuestro VPS.</p>
+							
+							<h2>Paso Seis: Instalar Gunicorn</h2>
+							<p>Gunicorn es un servidor HTTP WSGI muy potente. Ya que es un paquete python necesitamos activar primero nuestro entorno virtual para instalarlo. Así es como lo hacemos</p>
+							<p><code>source /opt/myenv/bin/activate</code></p>
+							<p>Asegúrate de ver el añadido "myenv" al comienzo del prompt de tu terminal. Ahora, con tu entorno virtual activo, ejecuta este comando:</p>
+							<p><code>pip install gunicorn</code></p>
+							<p>Ahora Gunicorn está instalado dentro de tu entorno virtual. Si todo lo que buscaba era tener todo instalado, no dude en parar aquí.</p>
+
+							<h2>Paso Siete: Configurar PostgreSQL</h2>
+							<p>Vamos a empezar nuestra configuración trabajando con PostgreSQL. Con PostgreSQL tenemos que crear una base de datos, crear un usuario y conceder acceso al usuario que creamos a la base de datos que creamos. Empieza por correr el siguiente comando:</p>
+							<p><pre>sudo su - postgres</pre></p>
+							<p>Ahora el prompt de tu terminal debería decir "postgres@yourserver". Si este es el caso, entonces corre este comando para crear tu base de datos:</p>
+							<p><pre>createdb mydb</pre></p>
+							<p>Ahora tu base de datos ha sido creada y se llama "mydb", si no cambiaste tel comando. Puedes nombrar tu base de datos como quieras. Ahora crea tu usuario de base de datos con el siguiente comando:</p>
+							<p><pre>createuser -P</pre></p>
+							<p>Ahora te encontrarás con una serie de seis prompts. El primero te preguntará por el nombre del nuevo usuario. Use cualquier nombre que quiera. Los dos prompts siguientes son para tu contraseña y su confirmación para el nuevo usuario. Para los últimos tres prompts solo ingrese "n" y de "enter". Esto solo asegura que tus nuevos usuarios solo tienen acceso a lo que tu le das acceso. Ahora activar la línea de comandos de PostgreSQL:</p>
+							<p><pre>psql</pre></p>
+							<p>Finalmente conceda a este nuevo usuario acceso a tu nueva base de datos con este comando:</p>
+							<p><pre>GRANT ALL PRIVILEGES ON DATABASE mydb TO myuser;</pre></p>
+							<p>Ahora tienes una base de datos postgreSQL y un usuario que tiene acceso a esta base de datos</p>
+							
+							<h2>Paso Ocho: Crear un proyecto de Django</h2>
+							<p>Con el fin de ir más lejos necesitamos un proyecto Django con que probar. Esto nos permite ver si lo que estamos haciendo funciona o no. Cambiar de directorio en el directorio de su entorno virtual (en mi caso /opt/myenv/) así:</p>
+							<p><pre>cd /opt/myenv</pre></p>
+							<p>Ahora asegúrate de que tu entorno virtual esté activo. Si te aseguraste, entonces solo corre el siguiente comando para asegurarte de que está activado:</p><p><pre>source /opt/myenv/bin/activate</pre></p>
+							<p>Ahora, con tu entorno virtual activo, corre el siguiente comando para iniciar un nuevo proyecto de Django</p>
+							<p><pre>django-admin.py startproject myproject</pre></p>
+							<p>Deberías ver un nuevo directorio llamado "myproject" dentro del directorio de tu entorno virtual. Aquí es donde viven los archivos de nuestro proyecto Django.</p>
+							<p>Para que Django pueda ser capaz de hablar con nuestra base de datos necesitamos instalar un backend para PostgreSQL. Cerciorarse de que tu entorno virtual esté activo y corre el siguiente comando con el fin de hacer esto:</p>
+							<p><pre>pip install psycopg2</pre></p>
+							<p>Cambiar de directorio en el nuevo directorio "myproject" y luego en el subdirectorio que también se llama "myproject" así:</p>
+							<p><pre>cd /opt/myenv/myproject/myproject</pre></p>
+							<p>Editar el archivo settings.p con tu editor favorito:</p>
+							<p><pre>nano settings.py</pre></p>
+							<p>Encontrar los ajustes de la base de datos y editarlos para que luzcan como esto:</p>
+<pre>
+<code>    
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2', # Agregar 'postgresql_psycopg2', 'mysql', 'sqlite3' u 'oracle'.
+        'NAME': 'mydb', # O la ruta al archivo de base de datos si se utiliza sqlite3.
+        # Los ajustes siguientes no son usados con sqlite3:
+        'USER': 'myuser',
+        'PASSWORD': 'password',
+        'HOST': 'localhost', # Vacío para localhost a traves de sockets de dominio o '127.0.0.1' para localhost a través de TCP.
+        'PORT': '', # Se establece una cadena vac´ia por defecto.
+    }
+}
+
+</code>
+</pre>
+							<p>Guardar y salir del archivo. Ahora muévete un directorio hacia arriba a tu directorio principal del proyecto de Django.</p>
+							<p><pre>cd /opt/myenv/myproject</pre></p>
+							<p>Activa tu entorno virtual, si es que ya no lo has hecho, con el siguiente comando:</p>
+							<p><pre>source /opt/myenv/bin/activate</pre></p>
+							<p>Con tu entorno virtual activo, corre el siguiente comando para que Django pueda agregar su configuración inicial y otras tablas a tu base de datos:</p>
+							<p><pre>python manage.py syncdb</pre></p>
+							<p>Deberías ver alguna salida describiendo que tablas fueron instaladas, seguido por un prompt que te pregunta si queres crear un super usuario. Esto es opcional y depende de si vas a utilizar el sistema de autentificación de Django o el administrador de Django.</p>						
+	
+							<h2>Paso Nueve: Configurar Gunicorn</h2>
+							<p>La configuración de Gunicorn es muy específica para las necesidades de sus aplicaciones. Voy a correr Gunicorn brevemente aquí con algunos ajustes diferentes.</p>
+							<p>Primero solo dejamos corriendo Gunicorn con los ajustes por defecto. Aquí está el comando para correr Gunicorn por defecto solamente:</p>
+							<p><pre>gunicorn_django --bind yourdomainorip.com:8001</pre></p>
+							<p>Asegurate de reemplazar "yourdomainorip.com" con tu dominio, o la dirección ip de tu VPS si lo prefieres. Ahora ve a tu navegador y visita yourdomainorip.com:8001 y mira lo que hay. Debe mostrarse la pantalla de bienvenida de Django.</p>
+							<p>Sin embargo, si te fijas bien, en la salida del comando anterior, notarás un solo worker de Gunicorn iniciado. ¿Que pasa si estas lanzando una aplicación a gran escala en un VPS? ¡No tenga miedo! Todo lo que necesitamos hacer es modificar el comando como se muestra a continuación</p>
+							<p><pre>gunicorn_django --workers=3 --bind yourdomainorip.com:8001</pre></p>
+							<p>Ahora notará que iniciaron tres workers en lugar de uno solo. Puedes cambiar este número por cualquiera que se adapte a tus necesidades.</p>
+							<p>Puesto que corrimos el comando para iniciar Gunicorn como root, Gunicorn ahora esta corriendo como root. ¿Que pasa si no quieres eso? De nuevo, podemos alterar el comando anterior para acomodarlo ligeramente.</p>
+							<p><pre>gunicorn_django --workers=3 --user=nobody --bind yourdomainorip.com:8001</pre></p>
+							<p>Si deseas ajustar más opciones para Gunicorn, entonces lo mejor es crear un archivo de configuración que puede llamar cuando ejecute Gunicorn. Esto resultará en un comando de Gunicorn mucho más corto y fácil de leer/congfigurar.</p>
+							<p>Puede colocar el fichero de configuración de Gunicorn en cualquier lugar. Por simplicidad lo colocamos en el directorio de nuestro entorno virtual. Navegar hasta el directorio de tu entorno virtual:</p>
+							<p><pre>cd /opt/myenv</pre></p>
+							<p>Ahora abre tu archivo de configuración con tu editor preferido (en el de abajo se usa nano)</p>
+							<p><pre>sudo nano gunicorn_config.py</pre></p>
+							<p>Agregar el siguiente contenido al archivo:</p>
+<pre>
+<code>
+command = '/opt/myenv/bin/gunicorn'
+pythonpath = '/opt/myenv/myproject'
+bind = '127.0.0.1:8001'
+workers =  
+user = nobody
+</code>
+</pre>							
+							<p>Guardar y salir del archivo. Lo que hacen estas opciones es establecer la ruta al binario de Gunicorn, añadir el directorio de tu proyecto a tu "python path", establece el dominio y el puerto para unirse a Gunicorn y establece el número de workers y el usuario que correrá Gunicorn.</p>
+							<p>Con el fín de ejecutar el servidor, esta vez necesitamos un comando un poco más largo. Ingresa el siguiente comando en tu prompt:</p>
+							<p><pre>/opt/myenv/bin/gunicorn -c /opt/myenv/gunicorn_config.py myproject.wsgi</pre></p>
+							<p>Notarás que en el comando anterior pasamos el flag "-c". Esto le dice a -Gunicorn que tenemos un archivo de configuración que queremos usar. El cual pasamos justo después de la "-c". Por último pasamos, en notación de puntos de python, una referencia a nuestro archivo WSGI.</p>
+							<p>Correr Gunicorn de esta manera requiere que usted también corra Gunicorn en su propia sesión de pantalla (si estas familiarizado usando la pantalla), o el proceso de fondo pulsando "ctrl+z" y luego tipeando "bg" y "enter" después de ejecutar los comandos de Gunicorn. Este proceso continúa funcionando de fondo incluso despu´es de que su sesión se cierra. Esto también plantea el problema de la necesidad de iniciar manualmente o reiniciar Gunicorn manualmente cuando tu VPS se reinicia o fue por alguna razón estrellado. Para resolver este problema la mayoría de la gente usa <a href="http://supervisord.org/" target="_blank">supervisord</a>, para gestionar Gunicorn e iniciar/reiniciarlo cuando sea necesario. La instación y configuración de supervisord ha sido cubierta en otro artículo que puede encontrar <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-manage-supervisor-on-ubuntu-and-debian-vps" target="_blank">aquí</a>.</p>
+							<p>Finalmente, esto no es de ninguna manera una lista exhaustiva de opciones de configuración para Gunicorn. Por favor lea la documentación de Gunicorn en <a href="http://gunicorn.org/" target="_blank">gunicorn.org</a> para saber más sobre este tópico.</p>	
+							
+							<h2>Paso Diez: Configurar NGINX</h2>
+							<p>Antes de dejarse llevar, primero vamos a iniciar NGINX así:</p>
+							<p><pre>sudo service nginx start</pre></p>
+							<p>Ya que solo configuramos NGINX para manejar los archivos estáticos necesitaremos primero decidir donde se almacenarán nuestros archivos estáticos. Abre tu archivo settings.py de tu proyecto de Django y edita la línea STATIC_ROOT de modo que tenga este aspecto:</p>
+							<p><pre>STATIC_ROOT = "/opt/myenv/static/"</pre></p>
+							<p>Esta ruta puede estar donde tu quieras. Pero por limpieza normalmente la pongo afuera de mi carpeta del proyecto de Django, pero dentro de mi directorio de entorno virtual.</p>
+							<p>Ahora que ya tienes configurado donde se ubicarán tus archivos estáticos, vamos a configurar NGINX para manejar esos archivos. Abra un nuevo archivo de configuración de NGINX con el siguiente comando:</p>
+							<p><pre>sudo nano /etc/nginx/sites-available/myproject</pre></p>
+							<p>Puedes nombrar el archivo como quieras, pero el standard es normalmente nombrarlo algo relacionado al sitio que estás configurando. Ahora agrega lo siguiente al archivo:</p>
+<pre>
+<code>    
+server {
+    server_name yourdomainorip.com;
+
+    access_log off;
+
+    location /static/ {
+        alias /opt/myenv/static/;
+    }
+
+    location / {
+            proxy_pass http://127.0.0.1:8001;
+            proxy_set_header X-Forwarded-Host $server_name;
+            proxy_set_header X-Real-IP $remote_addr;
+            add_header P3P 'CP="ALL DSP COR PSAa PSDa OUR NOR ONL UNI COM NAV"';
+    }
+}
+</code>
+</pre>
+							<p>Guardar y salir del archivo. La configuración anterior ha ajustado NGINX para servir cualquier cosa requerida por yourdomainorip.com/static/ del directorio static que nosotros configuramos para nuestro proyecto de Django. Lo que se solicite a yourdomainorip.com lo hará al proxi de localhost sobre el puerto 8001, que es donde ordenamos correr Gunicorn. Las otras líneas garantizan que el hostname y la direccion IP de la solicitud será pasada a Gunicorn. Sin esto, la dirección IP de cada solicitud , se convierte en 127.0.0.1 y el hostname es solo el hostname de tu VPS.</p>
+							<p>Ahora necesitamos crear un enlace simbólico en el directorio /etcnginx/sites-enabled que apunta a este archivo de configuración. Así es como NGINX sabe que sitio está activo. Así que vamos hacia el directorio /etc/nginx/sites-enabled:</p>
+							<p><pre>cd /etc/nginx/sites-enabled</pre></p>
+							<p>Una vez allí, corre este comando:</p>
+							<p><pre>sudo ln -s ../sites-available/myproject</pre></p>
+							<p>Esto creará el enlace smbólico que necesitamos para que NGINX sepa hacer honor a nuestro nuevo archivo de configuración para nuestro sitio.</p>
+							<p>Adicionalmente, eliminar el bloque de servidor por defecto de NGINX.</p>
+							<p><pre>sudo rm default</pre></p>
+							<p>Necesitamos reiniciar NGINX para que sepa ver nuestros cambios. Hacer esto corriendo lo siguiente:</p>
+							<p><pre>sudo service nginx restart</pre></p>
+							<p>Y eso es todo. Ahora tienes Django instalado y funcionando con PostgreSQL y tu aplicación es accesible desde la web con NGINX sirviendo contenido estático y Gunicorn como tu servidor de aplicaciones.</p>
+
+
+
+							<div class="author">By DigitalOcean. Traducido por 
+								<a href="https://twitter.com/cristian_cena" target="_blank">Chichango</a>
+							</div>
+							<p>&nbsp;</p>
+					    </div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
