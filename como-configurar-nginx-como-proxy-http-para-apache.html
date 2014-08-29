@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>¿Como configurar Nginx como un Proxy Front end para Apache?</title>
+    <link href="digitalocean.css" media="all" rel="stylesheet">
+</head>
+
+<body>
+	<div class="m-pikabu-viewport" style="width: auto;">
+		<div class="m-pikabu-container">
+		    <div class="wrapper tutorial-single">
+			    <div class="section section-primary">
+			    	<div class="sidebar main-sidebar" data-sticky-sidebar="" data-sticky-content=".section-content">
+						<p class="sidebar-avatar">
+							<a href="https://twitter.com/cristian_cena" target="_blank">
+								<img src="img/avatar.jpeg" alt="" class="avatar avatar-large">
+							</a>
+						</p>
+						<p class="sidebar-author">Cristian Cena</p>
+						<p class="sidebar-date">
+							Originalmente por Etel Sverdlov <br>en <a href="https://www.digitalocean.com/community/tutorials/how-to-configure-nginx-as-a-front-end-proxy-for-apache" target="_blank">DigitalOcean</a>.
+						</p>
+						<p class="sidebar-date updated-at">Traducido Ago 27, 2014 
+							<a href="http://twitter.com/share?text=Algún texto&amp;url=http://chichango.com" target="_blank" title="Compartir en Twitter">
+								twitter
+							</a>
+							<span> - </span>
+							<a href="https://www.facebook.com/sharer/sharer.php?u=http://chichango.com" target="_blank" title="Compartir en Facebook">
+								facebook
+							</a>
+						</p>
+						<p class="sidebar-difficulty">
+							<span class="difficulty-level Advanced">Avanzado</span>
+						</p>			
+					</div>
+					<div class="section-content content">
+					    <h1 class="content-title">¿Como configurar Nginx como un Proxy Front end para Apache?</h1>
+					    <p>&nbsp;</p>
+					    <div class="content-body tutorial-content">
+
+<h2>¿Porqué correr NGINX y Apache juntos?</h2>
+<p>Ambis, Nginx y Apache, son servidores poderosos y efectivos. Apache actualmente reina como el servidor #1 para sitios web y desde su lanzamiento público en 2006, Nginx ha tomado al mundo por asalto y es ahora el servidor #2 para sitios activos. Las razones de la popularidad de cada uno de los servidores son claras: El poder de Apache y la velocidad de Nginx son bien conocidas. Sin embargo, ambos servidores tienen inconvenientes, Apache es penoso en la memoria del servidor, mientras que Nginx (genial para archivos estáticos) necesita la ayuda de php-fpm o módulo similar para gestionar el contenido dinámico.</p>
+<p>Sin embargo, uno puede combinar los dos servidores web para conseguir grandes resultados, con Nginx como servidor de archivos estáticos (servidor front end) y Apache procesando el backend.</p>
+
+<h2>Configuración</h2>
+<p>Para realizar los pasos en este tutorial necesitarás tener privilegios de "sudo" en tu servidor VPS.</p>
+<p>Para crear un usuario con privilegios sudo, vaya por el tercer y cuarto paso del <a href="https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-12-04" target="_blank">"tutorial de configuración inicial de ubuntu server"</a></p>
+
+<h2>Instalar NGINX</h2>
+<p>Para empezar, necesitamos instalar y configurar nginx, que servirá para el frontend de nuestro sitio.</p>
+<p>Descarguémoslo desde apt-get:</p>
+<p><pre>sudo apt-get install nginx</pre></p>
+<p>Una vez lo hayas descargado, puedes ir un paso mas adelante y configurar los hosts virtuales que corren en el front end.</p>
+<p>Necesitamos hacer unos pocos cambios en la configuración.</p>
+
+<h2>Configurar NGINX</h2>
+<p>Abrir la configuración de nginx</p>
+<p><pre>sudo nano /etc/nginx/sites-available/example</pre></p>
+<p>La siguiente configuración se pondrá en marcha para usar nginx como el servidor frontend. Es muy similar a la configuración por defecto y los detalles están debajo de la configuración</p>
+<pre>
+server {
+        listen   80; 
+
+        root /var/www/; 
+        index index.php index.html index.htm;
+
+        server_name example.com; 
+
+        location / {
+        try_files $uri $uri/ /index.php;
+        }
+
+        location ~ \.php$ {
+        
+        proxy_set_header X-Real-IP  $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Host $host;
+        proxy_pass http://127.0.0.1:8080;
+
+         }
+
+         location ~ /\.ht {
+                deny all;
+        }
+}
+</pre>
+<p>En la configuración fueron implementados los siguientes cambios:</p>
+<ul>
+	<li>La raíz se establece en el directorio web correcto</li>
+	<li>Fue añadido index.php a la línea index</li>
+	<li>try_files intentará servir cualquier página que solicite el visitante. Si Nginx es incapaz, entonces el archivo se pasa al proxy</li>
+	<li>proxy_pass deja a Nginx la dirección del servidor proxy</li>
+	<li>Finalmente "location ~ /\.ht {" niega el acceso a los archivos .htaccess, si el documento root de apache coincide con uno de Nginx</li>
+</ul>
+<p></p>
+<p></p>
+<p><pre></pre></p>
+<p></p>
+<p><pre></pre></p>
+<p></p>
+
+<h2>Instalar Apache</h2>
+<p></p>
+<p><pre></pre></p>
+<p></p>
+
+
+<h2>Configurar Apache</h2>
+<p></p>
+<p><pre></pre></p>
+<p></p>
+<p>
+<pre></pre>
+<pre></pre>
+</p>
+<p></p>
+<p></p>
+<p><pre></pre></p>
+<p><pre></pre></p>
+<p></p>
+<p></p>
+<p><pre></pre></p>	
+<p></p>
+<p><pre></pre></p>
+<p></p>
+<p><pre></pre></p>
+<p></p>
+<p><pre></pre></p>
+<p><pre></pre></p>
+
+<h2>Terminar</h2>
+<p></p>
+<p></p>
+<p></p>
+<p><pre></pre></p>
+<p></p>
+..code..
+<p></p>
+<p></p>
+<p></p>
+<p><pre></pre></p>
+
+<h2>Ver Más</h2>
+<p></p>
+		
+							<div class="author">By <a href="https://twitter.com/etelsverdlov" target="_blank">Etel Sverdlov</a>. Traducido por 
+								<a href="https://twitter.com/cristian_cena" target="_blank">Chichango</a>
+							</div>
+							<p>&nbsp;</p>
+					    </div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
